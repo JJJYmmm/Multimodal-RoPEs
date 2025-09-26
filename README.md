@@ -6,3 +6,4 @@ Todo List: Implementations of Multimodal RoPE Variants
 - [ ] VideoRoPE / HoPE
 - [ ] ILRoPE / OmniRoPE
 - [ ] MMRoPE
+- [ ] More variants...
