@@ -1,47 +1,65 @@
 from functools import partial
+
 from .configs import *
-from . import pos_design
-from . import freq_allocation
+from .pos_design import *
+from .freq_allocation import *
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 SUPPORT_MM_ROPES = [
     "vanilla-rope",
     "mrope",
+    "mrope-interleave",
+    "mhrope",
 ]
 
 
 MAPPINGS_NAME_TO_CONFIG = {
-    "vanilla-rope": VanillaRoPEConfig,
+    "vanilla-rope": VanillaRopeConfig,
+    "mrope": MRopeConfig,
+    "mrope-interleave": MRopeInterleaveConfig,
+    "mhrope": MHRopeConfig,
 }
 
 
 MAPPINGS_NAME_TO_POS_DESIGN = {
-    "vanilla-rope": pos_design.vanilla.get_rope_index,
-    # "mrope": pos_design.mrope.get_rope_index,
+    "vanilla-rope": get_vanilla_rope_index,
+    "mrope": get_mrope_index,
+    "mrope-interleave": get_mrope_interleave_index,
+    "mhrope": get_mrope_interleave_index,
 }
 
 
 MAPPINGS_NAME_TO_FREQ_ALLOCATION = {
-    "vanilla-rope": freq_allocation.vanilla.RopeEmbedding,
-    # "mrope": freq_allocation.mrope.RopeEmbedding,
+    "vanilla-rope": RopeEmbedding,
+    "mrope": MRopeEmbedding,
+    "mrope-interleave": MRopeInterleaveEmbedding,
+    "mhrope": MHRopeEmbedding,
 }
 
 
-def get_multimodal_rope_config(rope_name: str, **kwargs) -> VanillaRoPEConfig:
+def get_multimodal_rope_config(rope_name: str, **kwargs) -> VanillaRopeConfig:
     assert rope_name in SUPPORT_MM_ROPES, f"RoPE type {rope_name} not supported."
     rope_config_class = MAPPINGS_NAME_TO_CONFIG[rope_name]
     return rope_config_class(**kwargs)
 
 
-def get_multimodal_rope(rope_name: str, **kwargs):
+def get_multimodal_rope(rope_name: str, *args, **kwargs):
     assert rope_name in SUPPORT_MM_ROPES, f"RoPE type {rope_name} not supported."
 
     rope_config_class = MAPPINGS_NAME_TO_CONFIG[rope_name]
-    config = rope_config_class(**kwargs)
+    config = rope_config_class(*args, **kwargs)
+
+    logging.info(f"Config: {config}")
 
     pos_design_func = MAPPINGS_NAME_TO_POS_DESIGN[config.name]
     freq_allocation_class = MAPPINGS_NAME_TO_FREQ_ALLOCATION[config.name]
 
-    rope_index = partial(pos_design_func, extra_config=config)
-    rope_embed_factory = partial(freq_allocation_class, config=config)
+    def patched_pos_design_func(*args, **kwargs):
+        return pos_design_func(extra_config=config, *args, **kwargs)
 
-    return rope_index, rope_embed_factory
+    rope_embed_factory = partial(freq_allocation_class, extra_config=config)
+
+    return patched_pos_design_func, rope_embed_factory

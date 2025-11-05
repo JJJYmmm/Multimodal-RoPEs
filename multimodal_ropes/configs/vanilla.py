@@ -1,9 +1,9 @@
-class VanillaRoPEConfig:
+class VanillaRopeConfig:
     """
     Configuration class for RoPE.
     """
 
-    def __init__(self, dim: int, base: int = 10000):
+    def __init__(self, dim: int, base: int = 10000, **kwargs):
         self.name = "vanilla-rope"
         self.dim = dim
         self.base = base
