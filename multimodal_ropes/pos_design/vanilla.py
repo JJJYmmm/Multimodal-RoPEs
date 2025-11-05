@@ -12,11 +12,12 @@ def get_vanilla_rope_index(
     attention_mask: Optional[torch.Tensor] = None,
     extra_config: VanillaRopeConfig = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-
     # qwen3vl use timestamps to seperate videos, like <t1> <vision_start> <frame1> <vision_end> <t2> <vision_start> <frame2> <vision_end>, the video_grid_thw should also be split
     # if you are using qwen2/2.5vl, please remove them
     if video_grid_thw is not None:
-        video_grid_thw = torch.repeat_interleave(video_grid_thw, video_grid_thw[:, 0], dim=0)
+        video_grid_thw = torch.repeat_interleave(
+            video_grid_thw, video_grid_thw[:, 0], dim=0
+        )
         video_grid_thw[:, 0] = 1
 
     spatial_merge_size = self.config.vision_config.spatial_merge_size

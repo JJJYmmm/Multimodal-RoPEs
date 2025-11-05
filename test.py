@@ -7,6 +7,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+
 def rotate_half(x):
     """Rotates half the hidden dims of the input."""
     x1 = x[..., : x.shape[-1] // 2]
@@ -20,7 +21,9 @@ def apply_multihead_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_
     # k [bs, num_key_value_heads, seq_len, head_dim]
     # cos, sin [bs, num_key_value_heads, seq_len, head_dim] -> [bs, num_heads, seq_len, head_dim]
     n_repeat = q.shape[1] // cos.shape[1]
-    q_embed = (q * cos.repeat_interleave(n_repeat, dim=1)) + (rotate_half(q) * sin.repeat_interleave(n_repeat, dim=1))
+    q_embed = (q * cos.repeat_interleave(n_repeat, dim=1)) + (
+        rotate_half(q) * sin.repeat_interleave(n_repeat, dim=1)
+    )
     k_embed = (k * cos) + (rotate_half(k) * sin)
     return q_embed, k_embed
 
@@ -36,8 +39,12 @@ def monkey_patch_qwen3vl(rope_name, **kwargs):
 
     if rope_name == "mhrope":
         # patch apply_rotary_embed
-        transformers.models.qwen3_vl.modeling_qwen3_vl.apply_rotary_pos_emb = apply_multihead_rotary_pos_emb
-        logging.info("MHRoPE: Patched apply_rotary_pos_emb with apply_multihead_rotary_pos_emb.")
+        transformers.models.qwen3_vl.modeling_qwen3_vl.apply_rotary_pos_emb = (
+            apply_multihead_rotary_pos_emb
+        )
+        logging.info(
+            "MHRoPE: Patched apply_rotary_pos_emb with apply_multihead_rotary_pos_emb."
+        )
 
     logging.info(f"Patched Qwen3VLModel with {rope_name}.")
 
@@ -100,6 +107,21 @@ if __name__ == "__main__":
         base=5000000,
     )
     monkey_patch_qwen3vl("vanilla-rope", **common_kwargs)
-    monkey_patch_qwen3vl("mrope", mrope_section=[16, 24, 24], temporal_stride=1, **common_kwargs)
-    monkey_patch_qwen3vl("mrope-interleave", mrope_section=[24, 20, 20], temporal_stride=1, spatial_reset=True, **common_kwargs)
-    monkey_patch_qwen3vl("mhrope", num_key_value_heads=8, mrope_section=[2, 3, 3], temporal_stride=1, spatial_reset=True, **common_kwargs)
+    monkey_patch_qwen3vl(
+        "mrope", mrope_section=[16, 24, 24], temporal_stride=1, **common_kwargs
+    )
+    monkey_patch_qwen3vl(
+        "mrope-interleave",
+        mrope_section=[24, 20, 20],
+        temporal_stride=1,
+        spatial_reset=True,
+        **common_kwargs,
+    )
+    monkey_patch_qwen3vl(
+        "mhrope",
+        num_key_value_heads=8,
+        mrope_section=[2, 3, 3],
+        temporal_stride=1,
+        spatial_reset=True,
+        **common_kwargs,
+    )
