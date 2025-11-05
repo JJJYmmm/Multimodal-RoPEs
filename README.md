@@ -37,7 +37,7 @@ def rotate_half(x):
 
 def apply_multihead_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     """
-    Applies rotary positional embeddings for multi-head attention with GQA.
+    Applies multi-head rotary positional embeddings for MHA/GQA.
     
     Args:
         q: [bs, num_heads, seq_len, head_dim]
