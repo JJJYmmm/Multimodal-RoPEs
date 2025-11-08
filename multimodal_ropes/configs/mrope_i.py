@@ -11,8 +11,8 @@ class MRopeInterleaveConfig(MRopeConfig):
         dim: int,
         base: int = 10000,
         mrope_section: list[int] = [24, 20, 20],
-        temporal_stride: int = 1,
-        spatial_reset=False,
+        temporal_stride: float = 1.0,
+        spatial_reset: bool = False,
         **kwargs,
     ):
         super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)

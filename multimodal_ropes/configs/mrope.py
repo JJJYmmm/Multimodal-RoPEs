@@ -11,7 +11,7 @@ class MRopeConfig(VanillaRopeConfig):
         dim: int,
         base: int = 10000,
         mrope_section: list[int] = [16, 24, 24],
-        temporal_stride: int = 2,
+        temporal_stride: float = 2.0,
         **kwargs,
     ):
         super().__init__(dim, base, **kwargs)

@@ -11,7 +11,7 @@ class MHRopeConfig(MRopeInterleaveConfig):
         dim: int,
         base: int = 10000,
         mrope_section: list[int] = [2, 3, 3],
-        temporal_stride: int = 1,
+        temporal_stride: float = 1.0,
         num_key_value_heads: int = 8,
         **kwargs,
     ):

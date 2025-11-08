@@ -106,25 +106,25 @@ if __name__ == "__main__":
         dim=128,
         base=5000000,
     )
-    monkey_patch_qwen3vl("vanilla-rope", **common_kwargs)
-    monkey_patch_qwen3vl(
-        "mrope", mrope_section=[16, 24, 24], temporal_stride=1, **common_kwargs
-    )
-    monkey_patch_qwen3vl(
-        "mrope-interleave",
-        mrope_section=[24, 20, 20],
-        temporal_stride=1,
-        spatial_reset=True,
-        **common_kwargs,
-    )
-    monkey_patch_qwen3vl(
-        "mhrope",
-        num_key_value_heads=8,
-        mrope_section=[2, 3, 3],
-        temporal_stride=1,
-        spatial_reset=True,
-        **common_kwargs,
-    )
+    # monkey_patch_qwen3vl("vanilla-rope", **common_kwargs)
+    # monkey_patch_qwen3vl(
+    #     "mrope", mrope_section=[16, 24, 24], temporal_stride=1, **common_kwargs
+    # )
+    # monkey_patch_qwen3vl(
+    #     "mrope-interleave",
+    #     mrope_section=[24, 20, 20],
+    #     temporal_stride=1,
+    #     spatial_reset=True,
+    #     **common_kwargs,
+    # )
+    # monkey_patch_qwen3vl(
+    #     "mhrope",
+    #     num_key_value_heads=8,
+    #     mrope_section=[2, 3, 3],
+    #     temporal_stride=1,
+    #     spatial_reset=True,
+    #     **common_kwargs,
+    # )
     monkey_patch_qwen3vl(
         "videorope", mrope_section=[16, 24, 24], temporal_stride=2, **common_kwargs
     )
