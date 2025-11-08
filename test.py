@@ -1,6 +1,9 @@
 import torch
 import transformers
 from transformers import AutoProcessor, Qwen3VLModel, Qwen3VLForConditionalGeneration
+from transformers.models.qwen3_vl.modeling_qwen3_vl import (
+    apply_rotary_pos_emb as original_apply_rotary_pos_emb,
+)
 from multimodal_ropes.entry import get_multimodal_rope
 
 import logging
@@ -50,12 +53,15 @@ def monkey_patch_qwen3vl(rope_name, **kwargs):
 
     test_forward()
 
+    if rope_name == "mhrope":
+        transformers.models.qwen3_vl.modeling_qwen3_vl.apply_rotary_pos_emb = (
+            original_apply_rotary_pos_emb
+        )
+        logging.info("MHRoPE: Restored original apply_rotary_pos_emb.")
+
 
 def test_forward():
-    ckpt = (
-        "/mnt/cpfs_m6_29eu38p1/data/shared/public/liuye/opensource/qwen3vl-2b-instruct"
-    )
-    # ckpt = "Qwen/Qwen3-VL-2B-Instruct"
+    ckpt = "Qwen/Qwen3-VL-2B-Instruct"
     model = Qwen3VLForConditionalGeneration.from_pretrained(
         ckpt,
         attn_implementation="flash_attention_2",
@@ -106,32 +112,36 @@ if __name__ == "__main__":
         dim=128,
         base=5000000,
     )
-    # monkey_patch_qwen3vl("vanilla-rope", **common_kwargs)
-    # monkey_patch_qwen3vl(
-    #     "mrope", mrope_section=[16, 24, 24], temporal_stride=1, **common_kwargs
-    # )
-    # monkey_patch_qwen3vl(
-    #     "mrope-interleave",
-    #     mrope_section=[24, 20, 20],
-    #     temporal_stride=1,
-    #     spatial_reset=True,
-    #     **common_kwargs,
-    # )
-    # monkey_patch_qwen3vl(
-    #     "mhrope",
-    #     num_key_value_heads=8,
-    #     mrope_section=[2, 3, 3],
-    #     temporal_stride=1,
-    #     spatial_reset=True,
-    #     **common_kwargs,
-    # )
+    monkey_patch_qwen3vl("vanilla-rope", **common_kwargs)
+
+    # MRoPE, MRoPE-I, MHRoPE
     monkey_patch_qwen3vl(
-        "videorope", mrope_section=[16, 24, 24], temporal_stride=2, **common_kwargs
+        "mrope", mrope_section=[16, 24, 24], temporal_stride=1, **common_kwargs
+    )
+    monkey_patch_qwen3vl(
+        "mrope-interleave",
+        mrope_section=[24, 20, 20],
+        temporal_stride=1,
+        spatial_reset=True,
+        **common_kwargs,
+    )
+    monkey_patch_qwen3vl(
+        "mhrope",
+        num_key_value_heads=8,
+        mrope_section=[2, 3, 3],
+        temporal_stride=1,
+        spatial_reset=True,
+        **common_kwargs,
+    )
+
+    # VideoRoPE and HoPE, temporal_stride is a float
+    monkey_patch_qwen3vl(
+        "videorope", mrope_section=[16, 24, 24], temporal_stride=2.0, **common_kwargs
     )
     monkey_patch_qwen3vl(
         "hope",
         mrope_section=[16, 24, 24],
-        temporal_stride=2,
+        temporal_stride=2.0,
         temporal_stride_lst=[0.5, 0.75, 1.0, 1.25, 1.5],
         **common_kwargs,
     )

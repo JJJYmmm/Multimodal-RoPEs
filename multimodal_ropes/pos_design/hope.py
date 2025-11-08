@@ -90,7 +90,9 @@ def get_hope_index(
                 text_len = ed - st
 
                 st_idx = (
-                    llm_pos_ids_list[-1][0].max() + 1 if len(llm_pos_ids_list) > 0 else 0
+                    llm_pos_ids_list[-1][0].max() + 1
+                    if len(llm_pos_ids_list) > 0
+                    else 0
                 )
                 llm_pos_ids_list.append(
                     torch.arange(text_len).view(1, -1).expand(3, -1) + st_idx
@@ -131,7 +133,9 @@ def get_hope_index(
 
             if st < len(input_tokens):
                 st_idx = (
-                    llm_pos_ids_list[-1][0].max() + 1 if len(llm_pos_ids_list) > 0 else 0
+                    llm_pos_ids_list[-1][0].max() + 1
+                    if len(llm_pos_ids_list) > 0
+                    else 0
                 )
                 text_len = len(input_tokens) - st
                 llm_pos_ids_list.append(
