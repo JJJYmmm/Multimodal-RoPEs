@@ -4,6 +4,9 @@ This repository is the official implementation of [Revisiting Multimodal Positio
 
 Multimodal position encoding is essential for vision-language models, yet there has been little systematic investigation into multimodal position encoding. We conduct a comprehensive analysis of *multimodal Rotary Positional Embedding (RoPE)* by examining its two core components: *position design* and *frequency allocation*. Through extensive experiments, we identify three key guidelines: *positional coherence, full frequency utilization, and preservation of textual priors*—ensuring unambiguous layout, rich representation, and faithful transfer from the pre-trained LLM. Based on these insights, we propose **Multi-Head RoPE (MHRoPE)** and **MRoPE-Interleave (MRoPE-I)**, two simple and plug-and-play variants that require no architectural changes. Our methods consistently outperform existing approaches across diverse benchmarks, with significant improvements in both general and fine-grained multimodal understanding.
 
+<img width="40%" height="600" alt="position-design" src="https://github.com/user-attachments/assets/64de865f-315e-4742-82fd-9bd9728ab3ef" />
+<img width="50%" height="548" alt="frequency-allocation" src="https://github.com/user-attachments/assets/43fd0a11-5a05-44f6-9685-8f83217c1410" />
+
 ## News
 
 - 2025.10 All variants of [Qwen3-VL](https://github.com/QwenLM/Qwen3-VL) now adopt MRoPE-Interleave w/o *spatial-reset*!
