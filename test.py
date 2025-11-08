@@ -125,3 +125,13 @@ if __name__ == "__main__":
         spatial_reset=True,
         **common_kwargs,
     )
+    monkey_patch_qwen3vl(
+        "videorope", mrope_section=[16, 24, 24], temporal_stride=2, **common_kwargs
+    )
+    monkey_patch_qwen3vl(
+        "hope",
+        mrope_section=[16, 24, 24],
+        temporal_stride=2,
+        temporal_stride_lst=[0.5, 0.75, 1.0, 1.25, 1.5],
+        **common_kwargs,
+    )

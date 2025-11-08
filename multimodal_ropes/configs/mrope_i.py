@@ -11,12 +11,10 @@ class MRopeInterleaveConfig(MRopeConfig):
         dim: int,
         base: int = 10000,
         mrope_section: list[int] = [24, 20, 20],
+        temporal_stride: int = 1,
         spatial_reset=False,
         **kwargs,
     ):
-        super().__init__(dim, base, mrope_section, **kwargs)
+        super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)
         self.name = "mrope-interleave"
         self.spatial_reset = spatial_reset
-
-    def __repr__(self):
-        return f"MRoPE_Interleave_Config(dim={self.dim}, base={self.base}, mrope_section={self.mrope_section}, spatial_reset={self.spatial_reset}, temporal_stride={self.temporal_stride})"

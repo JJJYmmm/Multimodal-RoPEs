@@ -9,4 +9,5 @@ class VanillaRopeConfig:
         self.base = base
 
     def __repr__(self):
-        return f"RoPEConfig(dim={self.dim}, base={self.base})"
+        attrs = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items())
+        return f"{self.__class__.__name__}({attrs})"

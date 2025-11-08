@@ -10,7 +10,7 @@ class MRopeConfig(VanillaRopeConfig):
         self,
         dim: int,
         base: int = 10000,
-        mrope_section: list[int] = [24, 20, 20],
+        mrope_section: list[int] = [16, 24, 24],
         temporal_stride: int = 2,
         **kwargs,
     ):
@@ -18,6 +18,3 @@ class MRopeConfig(VanillaRopeConfig):
         self.name = "mrope"
         self.mrope_section = mrope_section
         self.temporal_stride = temporal_stride
-
-    def __repr__(self):
-        return f"MRoPEConfig(dim={self.dim}, base={self.base}, mrope_section={self.mrope_section}, temporal_stride={self.temporal_stride})"

@@ -1,16 +1,17 @@
 import torch
+import random
 from typing import Optional
 
-from ..configs.mrope_i import MRopeInterleaveConfig
+from ..configs.hope import HopeConfig
 
 
-def get_mrope_interleave_index(
+def get_hope_index(
     self,
     input_ids: Optional[torch.LongTensor] = None,
     image_grid_thw: Optional[torch.LongTensor] = None,
     video_grid_thw: Optional[torch.LongTensor] = None,
     attention_mask: Optional[torch.Tensor] = None,
-    extra_config: MRopeInterleaveConfig = None,
+    extra_config: HopeConfig = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     # qwen3vl use timestamps to seperate videos, like <t1> <vision_start> <frame1> <vision_end> <t2> <vision_start> <frame2> <vision_end>, the video_grid_thw should also be split
     # if you are using qwen2/2.5vl, please remove them
@@ -35,7 +36,7 @@ def get_mrope_interleave_index(
             3,
             input_ids.shape[0],
             input_ids.shape[1],
-            dtype=input_ids.dtype,
+            dtype=torch.float,
             device=input_ids.device,
         )
         image_index, video_index = 0, 0
@@ -95,41 +96,38 @@ def get_mrope_interleave_index(
                     torch.arange(text_len).view(1, -1).expand(3, -1) + st_idx
                 )
 
-                # t_index is always 0 because llm_grid_t is always 1 (we use timestamps to encode the temporal information for videos)
+                # body-diagonal symmetry
                 t_index = (
                     torch.arange(llm_grid_t)
                     .view(-1, 1)
                     .expand(-1, llm_grid_h * llm_grid_w)
                     .flatten()
-                ) * extra_config.temporal_stride
+                )
                 h_index = (
                     torch.arange(llm_grid_h)
                     .view(1, -1, 1)
                     .expand(llm_grid_t, -1, llm_grid_w)
                     .flatten()
+                    - (llm_grid_h - 1) // 2
                 )
+
                 w_index = (
                     torch.arange(llm_grid_w)
                     .view(1, 1, -1)
                     .expand(llm_grid_t, llm_grid_h, -1)
                     .flatten()
+                    - (llm_grid_w - 1) // 2
                 )
-                if extra_config.spatial_reset:
-                    mm_pos_ids = torch.stack([t_index, h_index, w_index])
-                    # calculate the <vision_end> token id to avoid too narrow stride caused by .max() line 120
-                    vision_end_token_id = torch.full(
-                        (3, 1), torch.max(mm_pos_ids).item() + 1 + text_len + st_idx
-                    )
-                    mm_pos_ids[0] += text_len + st_idx
-                    llm_pos_ids_list.append(
-                        torch.cat([mm_pos_ids, vision_end_token_id], dim=1)
-                    )
-                    st = ed + llm_grid_t * llm_grid_h * llm_grid_w + 1
-                else:
-                    llm_pos_ids_list.append(
-                        torch.stack([t_index, h_index, w_index]) + text_len + st_idx
-                    )
-                    st = ed + llm_grid_t * llm_grid_h * llm_grid_w
+
+                # dynamic scaling
+                scalor = random.choice(extra_config.temporal_stride_lst)
+                t_index = t_index * scalor
+
+                t_index = t_index + text_len + st_idx
+                h_index = h_index + t_index
+                w_index = w_index + t_index
+                llm_pos_ids_list.append(torch.stack([t_index, h_index, w_index]))
+                st = ed + llm_grid_t * llm_grid_h * llm_grid_w
 
             if st < len(input_tokens):
                 st_idx = (

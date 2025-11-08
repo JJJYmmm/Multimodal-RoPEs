@@ -13,6 +13,8 @@ SUPPORT_MM_ROPES = [
     "mrope",
     "mrope-interleave",
     "mhrope",
+    "videorope",
+    "hope",
 ]
 
 
@@ -21,6 +23,8 @@ MAPPINGS_NAME_TO_CONFIG = {
     "mrope": MRopeConfig,
     "mrope-interleave": MRopeInterleaveConfig,
     "mhrope": MHRopeConfig,
+    "videorope": VideoRopeConfig,
+    "hope": HopeConfig,
 }
 
 
@@ -29,6 +33,8 @@ MAPPINGS_NAME_TO_POS_DESIGN = {
     "mrope": get_mrope_index,
     "mrope-interleave": get_mrope_interleave_index,
     "mhrope": get_mrope_interleave_index,
+    "videorope": get_videorope_index,
+    "hope": get_hope_index,
 }
 
 
@@ -37,6 +43,8 @@ MAPPINGS_NAME_TO_FREQ_ALLOCATION = {
     "mrope": MRopeEmbedding,
     "mrope-interleave": MRopeInterleaveEmbedding,
     "mhrope": MHRopeEmbedding,
+    "videorope": VideoRopeEmbedding,
+    "hope": HopeEmbedding,
 }
 
 
