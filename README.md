@@ -3,9 +3,26 @@
 This repository is the official implementation of [Revisiting Multimodal Positional Encoding in Vision–Language Models](https://arxiv.org/abs/2510.23095). 
 
 Multimodal position encoding is essential for vision-language models, yet there has been little systematic investigation into multimodal position encoding. We conduct a comprehensive analysis of *multimodal Rotary Positional Embedding (RoPE)* by examining its two core components: *position design* and *frequency allocation*. Through extensive experiments, we identify three key guidelines: *positional coherence, full frequency utilization, and preservation of textual priors*—ensuring unambiguous layout, rich representation, and faithful transfer from the pre-trained LLM. Based on these insights, we propose **Multi-Head RoPE (MHRoPE)** and **MRoPE-Interleave (MRoPE-I)**, two simple and plug-and-play variants that require no architectural changes. Our methods consistently outperform existing approaches across diverse benchmarks, with significant improvements in both general and fine-grained multimodal understanding.
+
 ## News
 
 - 2025.10 All variants of [Qwen3-VL](https://github.com/QwenLM/Qwen3-VL) now adopt MRoPE-Interleave w/o *spatial-reset*!
+
+## Todo List: Implementations of Multimodal RoPE Variants
+
+To enhance usability and consistency, we are refactoring various multimodal RoPE implementations into a unified interface, similar to [`Qwen3VLTextRotaryEmbedding`](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_vl/modeling_qwen3_vl.py#L278). This effort is expected to be completed within one week (target date: November 9, 2025).
+
+- [x] [Vanilla RoPE](https://arxiv.org/abs/2104.09864): Apply vanilla RoPE directly to multimodal sequences, discarding the spatio-temporal structure of visual content, yet it remains a strong baseline.  
+- [x] [MRoPE](https://arxiv.org/abs/2409.12191): Introduced in Qwen2VL, upcasts 1D positions to three axes (t, h, w) and splits the feature dimension across different positional axes.  
+- [x] Our MRoPE-I: Applies an interleaved frequency allocation strategy, preserving a more complete frequency band for each positional axis; spatial reset is incorporated into the positional design to enhance visual attention.  
+- [x] Our MHRoPE: Employs head-wise frequency allocation to maximize utility across attention heads; spatial reset is also used.  
+- [x] [VideoRoPE](https://arxiv.org/pdf/2502.05173): Optimizes MRoPE’s frequency allocation by assigning the temporal dimension to low-frequency bands and adopting a diagonal positional design. Different from the official implementation, we vectorize the computation for faster execution.
+- [x] [HoPE](https://arxiv.org/abs/2505.20444): Built on VideoRoPE, applies positional scaling in the design and uses NoPE (no positional encoding) on the temporal dimension during frequency allocation. Different from the official implementation, we reset the temporal positions and vectorize the computation for faster execution.
+- [ ] CircleRoPE
+- [ ] V2PE
+- [ ] ILRoPE / OmniRoPE
+- [ ] MMRoPE
+- [ ] More variants...
 
 ## Usage
 
@@ -77,18 +94,6 @@ monkey_patch_qwen3vl("mhrope", num_key_value_heads=8, mrope_section=[2, 3, 3], t
 ```
 
 For more comprehensive examples and testing utilities, please refer to [`test.py`](test.py).
-
-## To-Do List: Implementations of Multimodal RoPE Variants
-
-To enhance usability and consistency, we are refactoring various multimodal RoPE implementations into a unified interface, similar to [`Qwen3VLTextRotaryEmbedding`](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_vl/modeling_qwen3_vl.py#L278). This effort is expected to be completed within one week (target date: November 9, 2025).
-
-- [x] Vanilla RoPE / MRoPE
-- [x] Our MHRoPE / MRoPE-I
-- [ ] CircleRoPE
-- [ ] VideoRoPE / HoPE
-- [ ] ILRoPE / OmniRoPE
-- [ ] MMRoPE
-- [ ] More variants...
 
 ## Citation
 
