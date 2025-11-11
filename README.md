@@ -21,11 +21,11 @@ To enhance usability and consistency, we are refactoring various multimodal RoPE
 - [x] Our MHRoPE: Employs head-wise frequency allocation to maximize utility across attention heads; spatial reset is also used.  
 - [x] [VideoRoPE](https://arxiv.org/pdf/2502.05173): Optimizes MRoPE’s frequency allocation by assigning the temporal dimension to low-frequency bands and adopting a diagonal positional design. Different from the official implementation, we vectorize the computation for faster execution.
 - [x] [HoPE](https://arxiv.org/abs/2505.20444): Built on VideoRoPE, applies positional scaling in the design and uses NoPE (no positional encoding) on the temporal dimension during frequency allocation. Different from the official implementation, we reset the temporal positions and vectorize the computation for faster execution.
-- [ ] CircleRoPE
-- [ ] V2PE
-- [ ] ILRoPE / OmniRoPE
-- [ ] MMRoPE
-- [ ] More variants...
+- [x] [CircleRoPE](https://arxiv.org/abs/2505.16416): A novel positional design that maps image tokens onto a circular trajectory orthogonal to text token indices, effectively mitigating cross-modal positional bias during generation. While the original CircleRoPE was designed for static images, we extend it to support video inputs by stacking circular rings along the temporal dimension, see [here](https://github.com/JJJYmmm/Multimodal-RoPEs/blob/64f8a141326c0ec079f8f05da42483a600028662/multimodal_ropes/pos_design/circlerope.py#L122-L130). Note that this repo doesn't support AGE mode for simplicity.
+- [ ] [V2PE](https://arxiv.org/abs/2412.09616)
+- [ ] [ILRoPE](https://arxiv.org/abs/2505.05472v1) / [OmniRoPE](https://arxiv.org/abs/2506.18871)
+- [ ] [MMRoPE](https://arxiv.org/abs/2507.08801)
+- [ ] More variants... Feel free to open an issue or pull request, and I will add them here. 🤗
 
 ## Usage
 
