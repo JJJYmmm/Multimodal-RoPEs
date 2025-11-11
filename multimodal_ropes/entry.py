@@ -15,6 +15,7 @@ SUPPORT_MM_ROPES = [
     "mhrope",
     "videorope",
     "hope",
+    "circlerope",
 ]
 
 
@@ -25,6 +26,7 @@ MAPPINGS_NAME_TO_CONFIG = {
     "mhrope": MHRopeConfig,
     "videorope": VideoRopeConfig,
     "hope": HopeConfig,
+    "circlerope": CircleRopeConfig,
 }
 
 
@@ -35,6 +37,7 @@ MAPPINGS_NAME_TO_POS_DESIGN = {
     "mhrope": get_mrope_interleave_index,
     "videorope": get_videorope_index,
     "hope": get_hope_index,
+    "circlerope": get_circlerope_index,
 }
 
 
@@ -45,6 +48,7 @@ MAPPINGS_NAME_TO_FREQ_ALLOCATION = {
     "mhrope": MHRopeEmbedding,
     "videorope": VideoRopeEmbedding,
     "hope": HopeEmbedding,
+    "circlerope": MRopeEmbedding,
 }
 
 

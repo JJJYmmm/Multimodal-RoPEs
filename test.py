@@ -145,3 +145,14 @@ if __name__ == "__main__":
         temporal_stride_lst=[0.5, 0.75, 1.0, 1.25, 1.5],
         **common_kwargs,
     )
+    monkey_patch_qwen3vl(
+        "circlerope",
+        mrope_section=[16, 24, 24],
+        temporal_stride=1,
+        move_to_origin=True,
+        dff_rate=True,
+        method="circle",
+        radius=10,
+        alpha=0.5,
+        **common_kwargs,
+    )

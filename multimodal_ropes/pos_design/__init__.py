@@ -3,3 +3,4 @@ from .mrope import get_mrope_index
 from .mrope_i import get_mrope_interleave_index
 from .videorope import get_videorope_index
 from .hope import get_hope_index
+from .circlerope import get_circlerope_index
