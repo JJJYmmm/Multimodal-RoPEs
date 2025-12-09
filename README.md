@@ -26,6 +26,7 @@ To enhance usability and consistency, we are refactoring various multimodal RoPE
 - [ ] [V2PE](https://arxiv.org/abs/2412.09616)
 - [ ] [ILRoPE](https://arxiv.org/abs/2505.05472v1) / [OmniRoPE](https://arxiv.org/abs/2506.18871)
 - [ ] [MMRoPE](https://arxiv.org/abs/2507.08801)
+- [ ] [GRAPE](https://openreview.net/forum?id=itoNJ3gJl2)
 - [ ] More variants... Feel free to open an issue or pull request, and I will add them here. 🤗
 
 ## Usage
