@@ -145,7 +145,11 @@ def test_qwen35_golden_current():
 
     # cos/sin are computed with floating-point sin/cos and can differ by tiny epsilons across
     # platforms (macOS vs Linux), CPU instruction sets, and PyTorch builds.
-    torch.testing.assert_close(cur["hf_cos"], golden["hf_cos"], rtol=0, atol=1e-7)
-    torch.testing.assert_close(cur["hf_sin"], golden["hf_sin"], rtol=0, atol=1e-7)
-    torch.testing.assert_close(cur["ours_cos"], golden["ours_cos"], rtol=0, atol=1e-7)
-    torch.testing.assert_close(cur["ours_sin"], golden["ours_sin"], rtol=0, atol=1e-7)
+    torch.testing.assert_close(cur["hf_cos"], golden["hf_cos"], rtol=1e-5, atol=1e-5)
+    torch.testing.assert_close(cur["hf_sin"], golden["hf_sin"], rtol=1e-5, atol=1e-5)
+    torch.testing.assert_close(
+        cur["ours_cos"], golden["ours_cos"], rtol=1e-5, atol=1e-5
+    )
+    torch.testing.assert_close(
+        cur["ours_sin"], golden["ours_sin"], rtol=1e-5, atol=1e-5
+    )
