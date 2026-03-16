@@ -19,12 +19,50 @@ class RopeEmbedding(nn.Module):
         self.config = config
         self.extra_config = extra_config
 
-        self.rope_type = self.config.rope_scaling["rope_type"]
-        self.rope_init_fn: Callable = ROPE_INIT_FUNCTIONS[self.rope_type]
-        inv_freq, self.attention_scaling = self.rope_init_fn(self.config, device)
+        # transformers==5.3.0: configs expose standardized `rope_parameters`.
+        self.config.standardize_rope_params()
+        rope_params = self.config.rope_parameters
+        self.rope_type = rope_params.get("rope_type", "default")
 
+        # Initialize buffers on CPU. Some `from_pretrained` low-mem codepaths may still
+        # materialize them as zeros; in that case, call `reinit_inv_freq(...)` once after
+        # loading the model.
+        inv_freq, self.attention_scaling = self._compute_inv_freq(
+            device=torch.device("cpu")
+        )
         self.register_buffer("inv_freq", inv_freq, persistent=False)
-        self.original_inv_freq = inv_freq
+        self.register_buffer("original_inv_freq", inv_freq.clone(), persistent=False)
+
+    def _compute_inv_freq(self, device: torch.device):
+        rope_params = self.config.rope_parameters
+        rope_type = rope_params.get("rope_type", "default")
+
+        if rope_type == "default":
+            base = float(rope_params.get("rope_theta", 10000.0))
+            head_dim = (
+                getattr(self.config, "head_dim", None)
+                or self.config.hidden_size // self.config.num_attention_heads
+            )
+            dim = int(head_dim)
+            exponents = torch.arange(0, dim, 2, device=device, dtype=torch.float) / dim
+            base_t = torch.tensor(base, device=device, dtype=torch.float)
+            inv_freq = torch.pow(base_t, exponents).reciprocal()
+            attention_scaling = 1.0
+            return inv_freq, attention_scaling
+
+        # Other RoPE flavors via HF helpers.
+        if rope_type == "linear" and "factor" not in rope_params:
+            rope_params["factor"] = 1.0
+        rope_init_fn: Callable = ROPE_INIT_FUNCTIONS[rope_type]
+        return rope_init_fn(self.config, device)
+
+    @torch.no_grad()
+    def reinit_inv_freq(self, device: torch.device | str):
+        device = torch.device(device)
+        inv_freq, attention_scaling = self._compute_inv_freq(device=device)
+        self.inv_freq = inv_freq
+        self.original_inv_freq = inv_freq.clone()
+        self.attention_scaling = attention_scaling
 
     @torch.no_grad()
     @dynamic_rope_update

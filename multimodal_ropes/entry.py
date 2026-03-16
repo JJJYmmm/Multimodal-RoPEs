@@ -1,12 +1,24 @@
-from functools import partial
-
-from .configs import *
-from .pos_design import *
-from .freq_allocation import *
-
 import logging
 
-logging.basicConfig(level=logging.INFO)
+from .configs.circlerope import CircleRopeConfig
+from .configs.hope import HopeConfig
+from .configs.mrope import MRopeConfig
+from .configs.mrope_i import MRopeInterleaveConfig
+from .configs.mhrope import MHRopeConfig
+from .configs.vanilla import VanillaRopeConfig
+from .configs.videorope import VideoRopeConfig
+from .freq_allocation.hope import HopeEmbedding
+from .freq_allocation.mhrope import MHRopeEmbedding
+from .freq_allocation.mrope import MRopeEmbedding
+from .freq_allocation.mrope_i import MRopeInterleaveEmbedding
+from .freq_allocation.vanilla import RopeEmbedding
+from .freq_allocation.videorope import VideoRopeEmbedding
+from .pos_design.circlerope import get_circlerope_index
+from .pos_design.hope import get_hope_index
+from .pos_design.mrope import get_mrope_index
+from .pos_design.mrope_i import get_mrope_interleave_index
+from .pos_design.vanilla import get_vanilla_rope_index
+from .pos_design.videorope import get_videorope_index
 
 SUPPORT_MM_ROPES = [
     "vanilla-rope",
@@ -64,7 +76,8 @@ def get_multimodal_rope(rope_name: str, *args, **kwargs):
     rope_config_class = MAPPINGS_NAME_TO_CONFIG[rope_name]
     config = rope_config_class(*args, **kwargs)
 
-    logging.info(f"Config: {config}")
+    logger = logging.getLogger(__name__)
+    logger.debug("Config: %s", config)
 
     pos_design_func = MAPPINGS_NAME_TO_POS_DESIGN[config.name]
     freq_allocation_class = MAPPINGS_NAME_TO_FREQ_ALLOCATION[config.name]
@@ -72,6 +85,14 @@ def get_multimodal_rope(rope_name: str, *args, **kwargs):
     def patched_pos_design_func(*args, **kwargs):
         return pos_design_func(extra_config=config, *args, **kwargs)
 
-    rope_embed_factory = partial(freq_allocation_class, extra_config=config)
+    # Important: return a real class, not a functools.partial. Some downstream codepaths may
+    # depend on type identity / class attributes.
+    rope_config = config
 
-    return patched_pos_design_func, rope_embed_factory
+    class RopeEmbeddingFactory(freq_allocation_class):
+        def __init__(self, config, device=None, **inner_kwargs):
+            super().__init__(
+                config, device=device, extra_config=rope_config, **inner_kwargs
+            )
+
+    return patched_pos_design_func, RopeEmbeddingFactory
