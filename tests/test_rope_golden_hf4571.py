@@ -25,7 +25,7 @@ def _build_canonical_inputs(device: torch.device):
     # grid_thw=(1,4,4), merge=2 -> llm grid (1,2,2) => 4 vision tokens.
     image_grid_thw = torch.tensor([[1, 4, 4]], device=device, dtype=torch.long)
     video_grid_thw = torch.tensor([[2, 4, 4]], device=device, dtype=torch.long)
-    vision_len = (1 * (4 // merge) * (4 // merge))
+    vision_len = 1 * (4 // merge) * (4 // merge)
 
     toks: list[int] = []
     toks += [100, 101, 102, 103, 104]
@@ -76,7 +76,10 @@ def _compute_current():
         "vanilla-rope": dict(common_kwargs),
         "mrope": dict(common_kwargs, mrope_section=[16, 24, 24], temporal_stride=2),
         "mrope-interleave": dict(
-            common_kwargs, mrope_section=[24, 20, 20], temporal_stride=1, spatial_reset=False
+            common_kwargs,
+            mrope_section=[24, 20, 20],
+            temporal_stride=1,
+            spatial_reset=False,
         ),
         "mhrope": dict(
             common_kwargs,
@@ -85,7 +88,9 @@ def _compute_current():
             temporal_stride=1,
             spatial_reset=True,
         ),
-        "videorope": dict(common_kwargs, mrope_section=[16, 24, 24], temporal_stride=2.0),
+        "videorope": dict(
+            common_kwargs, mrope_section=[16, 24, 24], temporal_stride=2.0
+        ),
         "hope": dict(
             common_kwargs,
             mrope_section=[16, 24, 24],
@@ -114,7 +119,9 @@ def _compute_current():
 
     out = {}
     for rope_name in SUPPORT_MM_ROPES:
-        rope_index, rope_embed_cls = get_multimodal_rope(rope_name, **per_rope_kwargs[rope_name])
+        rope_index, rope_embed_cls = get_multimodal_rope(
+            rope_name, **per_rope_kwargs[rope_name]
+        )
         pos_ids, deltas = rope_index(
             stub,
             input_ids=inp["input_ids"],
@@ -150,8 +157,12 @@ def test_rope_matches_hf4571_golden():
         exp = expected[rope_name]
         cur = current[rope_name]
 
-        torch.testing.assert_close(cur["position_ids"], exp["position_ids"], rtol=0, atol=0)
-        torch.testing.assert_close(cur["rope_deltas"], exp["rope_deltas"], rtol=0, atol=0)
+        torch.testing.assert_close(
+            cur["position_ids"], exp["position_ids"], rtol=0, atol=0
+        )
+        torch.testing.assert_close(
+            cur["rope_deltas"], exp["rope_deltas"], rtol=0, atol=0
+        )
 
         # Rotary is float; allow tiny drift across PyTorch builds.
         torch.testing.assert_close(cur["cos"], exp["cos"], rtol=1e-5, atol=1e-5)
