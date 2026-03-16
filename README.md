@@ -33,6 +33,8 @@ To enhance usability and consistency, we are refactoring various multimodal RoPE
 
 We organize various multimodal RoPE implementations under the `transformers` by decoupling them into two components: **position design** and **frequency allocation**.
 
+This repo currently targets **Hugging Face transformers `5.3.0`** (no backward-compat guarantees).
+
 ### Installation
 
 You can install the `multimodal-ropes` package directly from the repository:
@@ -41,6 +43,23 @@ You can install the `multimodal-ropes` package directly from the repository:
 git clone https://github.com/JJJYmmm/Multimodal-RoPEs.git
 pip install -e .
 # Successfully installed multimodal-ropes-0.1.0
+```
+
+### Quick Test (Qwen3-VL)
+
+By default, [`test.py`](test.py) will:
+
+- load a local `Qwen3-VL-2B-Instruct` checkpoint from `../checkpoints/Qwen3-VL-2B-Instruct`
+- patch Qwen3-VL with **each** RoPE variant in `SUPPORT_MM_ROPES`
+- run a deterministic captioning prompt on a generated demo image
+- print **one line per variant**: `rope_name: caption`
+
+```bash
+python test.py
+python test.py --max-new-tokens 32
+python test.py --verbose        # include patch details
+python test.py --raw            # do not fold newlines/spaces in the decoded caption
+python test.py --ckpt-dir ../checkpoints/Qwen3-VL-2B-Instruct
 ```
 
 ### Integration with Vision–Language Models (e.g., Qwen3-VL)
@@ -99,6 +118,19 @@ monkey_patch_qwen3vl("mhrope", num_key_value_heads=8, mrope_section=[2, 3, 3], t
 ```
 
 For more comprehensive examples and testing utilities, please refer to [`test.py`](test.py).
+
+## CI / Regression Tests
+
+To avoid silent behavioral drift when upgrading dependencies (e.g., transformers), this repo includes a **golden** regression test:
+
+- The golden file is generated using **transformers `4.57.1`** and the repo **pre-upgrade** state.
+- The CI test re-computes `position_ids`, `rope_deltas`, and rotary `cos/sin` for a fixed multimodal token sequence and compares against the golden.
+
+Files:
+
+- `tests/golden/qwen3vl_rope_hf4571.pt`
+- `tests/test_rope_golden_hf4571.py`
+- `.github/workflows/ci.yml`
 
 ## Citation
 
