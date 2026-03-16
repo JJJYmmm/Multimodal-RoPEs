@@ -38,12 +38,20 @@ class RopeEmbedding(nn.Module):
 
         if rope_type == "default":
             base = float(rope_params.get("rope_theta", 10000.0))
+            partial_rotary_factor = float(rope_params.get("partial_rotary_factor", 1.0))
             head_dim = (
                 getattr(self.config, "head_dim", None)
                 or self.config.hidden_size // self.config.num_attention_heads
             )
-            dim = int(head_dim)
-            exponents = torch.arange(0, dim, 2, device=device, dtype=torch.float) / dim
+            dim = int(int(head_dim) * partial_rotary_factor)
+            # Keep at least one rotary pair.
+            dim = max(2, dim - (dim % 2))
+            exponents = (
+                torch.arange(0, dim, 2, device=device, dtype=torch.int64).to(
+                    dtype=torch.float
+                )
+                / dim
+            )
             base_t = torch.tensor(base, device=device, dtype=torch.float)
             inv_freq = torch.pow(base_t, exponents).reciprocal()
             attention_scaling = 1.0

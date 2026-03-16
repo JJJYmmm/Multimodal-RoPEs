@@ -50,6 +50,18 @@ def default_ckpt_dir() -> Path:
     return repo_root.parent / "checkpoints" / "Qwen3-VL-2B-Instruct"
 
 
+def detect_model_type(ckpt_dir: Path) -> str:
+    import json
+
+    cfg_path = ckpt_dir / "config.json"
+    if not cfg_path.exists():
+        return "unknown"
+    try:
+        return json.loads(cfg_path.read_text()).get("model_type", "unknown")
+    except Exception:
+        return "unknown"
+
+
 def make_demo_image(size: int = 448) -> Image.Image:
     # Deterministic colorful image (no network dependency).
     img = Image.new("RGB", (size, size), (245, 238, 230))
@@ -226,17 +238,88 @@ def main():
     if not (ckpt_dir / "config.json").exists():
         raise SystemExit(f"Checkpoint not found: {ckpt_dir}")
 
+    model_type = detect_model_type(ckpt_dir)
+
     settings = pick_device_settings()
     logger.info("Loading model from %s (%s)", ckpt_dir, settings)
-    model = Qwen3VLForConditionalGeneration.from_pretrained(ckpt_dir, **settings)
+    if model_type == "qwen3_5":
+        from transformers import Qwen3_5ForConditionalGeneration
+
+        model = Qwen3_5ForConditionalGeneration.from_pretrained(ckpt_dir, **settings)
+    else:
+        model = Qwen3VLForConditionalGeneration.from_pretrained(ckpt_dir, **settings)
+
     processor = AutoProcessor.from_pretrained(ckpt_dir)
 
     img = make_demo_image()
     common_kwargs = dict(dim=128, base=5_000_000)
 
+    if model_type == "qwen3_5":
+        # Qwen3.5 uses interleaved MRoPE without spatial reset by default, and often uses partial rotary dims.
+        native = run_caption(model, processor, img, max_new_tokens=args.max_new_tokens)
+
+        # Also test our patch path explicitly with the Qwen3.5 settings.
+        from transformers.models.qwen3_5.modeling_qwen3_5 import (
+            Qwen3_5Model,
+            Qwen3_5TextRotaryEmbedding as HFQwen3_5TextRotaryEmbedding,
+        )
+
+        def patch_rope_qwen35(rope_name: str, **rope_kwargs):
+            rope_index, rope_embed_cls = get_multimodal_rope(rope_name, **rope_kwargs)
+            Qwen3_5Model.get_rope_index = rope_index
+
+            if not hasattr(model, "_mm_rope_rotary_modules"):
+                targets = []
+                for module in model.modules():
+                    rotary = getattr(module, "rotary_emb", None)
+                    if rotary is not None and isinstance(
+                        rotary, HFQwen3_5TextRotaryEmbedding
+                    ):
+                        targets.append(module)
+                setattr(model, "_mm_rope_rotary_modules", targets)
+
+            for module in getattr(model, "_mm_rope_rotary_modules"):
+                rotary = getattr(module, "rotary_emb", None)
+                if rotary is None:
+                    continue
+                try:
+                    cfg = rotary.config
+                except Exception:
+                    continue
+                new_rotary = rope_embed_cls(cfg)
+                try:
+                    dev = next(module.parameters()).device
+                    new_rotary = new_rotary.to(dev)
+                except StopIteration:
+                    pass
+                module.rotary_emb = new_rotary
+
+            try:
+                model.model.rope_deltas = None
+            except Exception:
+                pass
+
+        patch_rope_qwen35(
+            "mrope-interleave",
+            dim=256,
+            base=10_000_000,
+            mrope_section=[11, 11, 10],
+            temporal_stride=1.0,
+            spatial_reset=False,
+        )
+        patched = run_caption(model, processor, img, max_new_tokens=args.max_new_tokens)
+
+        for name, text in [
+            ("qwen3.5/native", native),
+            ("qwen3.5/patched-mrope-i", patched),
+        ]:
+            if not args.raw:
+                text = re.sub(r"\\s+", " ", text).strip()
+            print(f"{name}: {text}")
+        return
+
     results: dict[str, str] = {}
     for rope_name in SUPPORT_MM_ROPES:
-        # Default per-variant kwargs (kept close to the existing repo defaults).
         kwargs: dict[str, Any] = dict(common_kwargs)
         if rope_name in {"mrope", "videorope", "hope"}:
             kwargs.update(mrope_section=[16, 24, 24], temporal_stride=2.0)
@@ -252,10 +335,8 @@ def main():
                 spatial_reset=True,
             )
 
-        # Patch RoPE.
         replaced = patch_rope(model, rope_name, **kwargs)
 
-        # MHRoPE needs a different apply_rotary implementation.
         restore_apply = None
         if rope_name == "mhrope":
             transformers.models.qwen3_vl.modeling_qwen3_vl.apply_rotary_pos_emb = (

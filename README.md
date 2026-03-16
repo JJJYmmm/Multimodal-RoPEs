@@ -62,6 +62,16 @@ python test.py --raw            # do not fold newlines/spaces in the decoded cap
 python test.py --ckpt-dir ../checkpoints/Qwen3-VL-2B-Instruct
 ```
 
+#### Qwen3.5 (Partial RoPE)
+
+If you have a local Qwen3.5 checkpoint (e.g. `../checkpoints/Qwen3.5-0.8B`), the same script will auto-detect
+`model_type=qwen3_5` and run a small multimodal caption smoke test, including a patched `mrope-interleave` run that
+respects `partial_rotary_factor` and `mrope_section` from Qwen3.5 configs.
+
+```bash
+python test.py --ckpt-dir ../checkpoints/Qwen3.5-0.8B
+```
+
 ### Integration with Vision–Language Models (e.g., Qwen3-VL)
 
 The package provides a simple interface to plug in different multimodal RoPE variants. Below is an example of how to patch `Qwen3-VL` with your preferred RoPE configuration:
