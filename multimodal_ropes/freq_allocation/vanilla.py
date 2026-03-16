@@ -2,8 +2,8 @@ import torch
 from torch import nn
 
 from collections.abc import Callable
-from typing import Optional
-from transformers.modeling_rope_utils import dynamic_rope_update, ROPE_INIT_FUNCTIONS
+
+from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS, dynamic_rope_update
 
 from ..configs.vanilla import VanillaRopeConfig
 
@@ -11,7 +11,9 @@ from ..configs.vanilla import VanillaRopeConfig
 class RopeEmbedding(nn.Module):
     inv_freq: torch.Tensor
 
-    def __init__(self, config, device=None, extra_config: VanillaRopeConfig = None):
+    def __init__(
+        self, config, device=None, extra_config: VanillaRopeConfig | None = None
+    ):
         super().__init__()
         self.max_seq_len_cached = config.max_position_embeddings
         self.original_max_seq_len = config.max_position_embeddings
@@ -24,9 +26,6 @@ class RopeEmbedding(nn.Module):
         rope_params = self.config.rope_parameters
         self.rope_type = rope_params.get("rope_type", "default")
 
-        # Initialize buffers on CPU. Some `from_pretrained` low-mem codepaths may still
-        # materialize them as zeros; in that case, call `reinit_inv_freq(...)` once after
-        # loading the model.
         inv_freq, self.attention_scaling = self._compute_inv_freq(
             device=torch.device("cpu")
         )
@@ -51,18 +50,8 @@ class RopeEmbedding(nn.Module):
             return inv_freq, attention_scaling
 
         # Other RoPE flavors via HF helpers.
-        if rope_type == "linear" and "factor" not in rope_params:
-            rope_params["factor"] = 1.0
         rope_init_fn: Callable = ROPE_INIT_FUNCTIONS[rope_type]
         return rope_init_fn(self.config, device)
-
-    @torch.no_grad()
-    def reinit_inv_freq(self, device: torch.device | str):
-        device = torch.device(device)
-        inv_freq, attention_scaling = self._compute_inv_freq(device=device)
-        self.inv_freq = inv_freq
-        self.original_inv_freq = inv_freq.clone()
-        self.attention_scaling = attention_scaling
 
     @torch.no_grad()
     @dynamic_rope_update
