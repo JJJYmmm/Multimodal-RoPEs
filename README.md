@@ -1,4 +1,4 @@
-# Revisiting Multimodal Positional Encoding in Vision–Language Models
+# [ICLR 2026] Revisiting Multimodal Positional Encoding in Vision–Language Models
 
 This repository is the official implementation of [Revisiting Multimodal Positional Encoding in Vision–Language Models](https://arxiv.org/abs/2510.23095). 
 
