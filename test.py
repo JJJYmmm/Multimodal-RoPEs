@@ -1,5 +1,6 @@
 import argparse
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +92,6 @@ def make_demo_image(size: int = 448) -> Image.Image:
 
 
 def pick_device_settings() -> dict[str, Any]:
-    has_cuda = torch.cuda.is_available()
     has_flash_attn = False
     try:
         import flash_attn  # noqa: F401
@@ -100,18 +100,15 @@ def pick_device_settings() -> dict[str, Any]:
     except Exception:
         has_flash_attn = False
 
-    if has_cuda and has_flash_attn:
+    if has_flash_attn:
         return dict(
             attn_implementation="flash_attention_2",
             torch_dtype=torch.bfloat16,
             device_map="auto",
         )
-    if has_cuda:
-        return dict(
-            attn_implementation="sdpa", torch_dtype=torch.bfloat16, device_map="auto"
-        )
+
     return dict(
-        attn_implementation="eager", torch_dtype=torch.float32, device_map="cpu"
+        attn_implementation="sdpa", torch_dtype=torch.bfloat16, device_map="auto"
     )
 
 
@@ -208,11 +205,22 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt-dir", type=Path, default=default_ckpt_dir())
     parser.add_argument("--max-new-tokens", type=int, default=64)
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show per-variant patch details and loading logs.",
+    )
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="Print raw decoded text (may include newlines).",
+    )
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING)
     # Keep stdout clean: transformers 5.3 prints a detailed LOAD REPORT at WARNING level.
     hf_logging.set_verbosity_error()
+    hf_logging.disable_progress_bar()
 
     ckpt_dir = args.ckpt_dir
     if not (ckpt_dir / "config.json").exists():
@@ -266,12 +274,14 @@ def main():
                 )
 
         results[rope_name] = caption
-        logger.info(
-            "[%s] replaced_rotary=%s caption=%r", rope_name, replaced, caption[:120]
-        )
+        if args.verbose:
+            logger.info("[%s] replaced_rotary=%s", rope_name, replaced)
 
     for rope_name in SUPPORT_MM_ROPES:
-        print(f"{rope_name}: {results[rope_name]}")
+        text = results[rope_name]
+        if not args.raw:
+            text = re.sub(r"\\s+", " ", text).strip()
+        print(f"{rope_name}: {text}")
 
 
 if __name__ == "__main__":
