@@ -11,6 +11,8 @@ Multimodal position encoding is essential for vision-language models, yet there 
 ## News
 
 - 2025.10 All variants of [Qwen3-VL](https://github.com/QwenLM/Qwen3-VL) now adopt MRoPE-Interleave w/o *spatial-reset*!
+- 2026.02 Qwen3.5 released: adopts MRoPE-Interleave w/o *spatial-reset* and uses partial RoPE (e.g. `partial_rotary_factor`).
+- 2026.03 This repo upgraded to Hugging Face transformers `5.3.0`.
 
 ## Todo List: Implementations of Multimodal RoPE Variants
 
