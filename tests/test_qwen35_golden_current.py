@@ -46,7 +46,9 @@ def _stub_qwen35(spatial_merge_size: int = 2):
                 dtype=torch.long,
             )
             position_temporal = position_temporal * time_interval
-            return torch.stack([position_temporal, position_height, position_width], dim=0)
+            return torch.stack(
+                [position_temporal, position_height, position_width], dim=0
+            )
 
     return Stub()
 
@@ -56,7 +58,9 @@ def _build_inputs(device: torch.device):
     # text(5) + image(4) + text(3) + video(4) + text(2)
     text1, img, text2, vid, text3 = 5, 4, 3, 4, 2
     seq_len = text1 + img + text2 + vid + text3
-    input_ids = (torch.arange(seq_len, device=device, dtype=torch.long).view(1, -1) + 1000)
+    input_ids = (
+        torch.arange(seq_len, device=device, dtype=torch.long).view(1, -1) + 1000
+    )
 
     mm = [0] * text1 + [1] * img + [0] * text2 + [2] * vid + [0] * text3
     mm_token_type_ids = torch.tensor([mm], device=device, dtype=torch.long)
@@ -77,7 +81,9 @@ def _compute_current():
 
     device = torch.device("cpu")
     stub = _stub_qwen35(spatial_merge_size=2)
-    input_ids, mm_token_type_ids, attention_mask, image_grid_thw, video_grid_thw = _build_inputs(device)
+    input_ids, mm_token_type_ids, attention_mask, image_grid_thw, video_grid_thw = (
+        _build_inputs(device)
+    )
 
     # Reference: HF get_rope_index (Qwen3.5 uses the same mm_token_type_ids grouping logic as Qwen3-VL).
     pos_ids, deltas = Qwen3_5Model.get_rope_index(
@@ -130,11 +136,14 @@ def test_qwen35_golden_current():
     golden = torch.load(GOLDEN_PATH, map_location="cpu")
     cur = _compute_current()
 
-    torch.testing.assert_close(cur["position_ids"], golden["position_ids"], rtol=0, atol=0)
-    torch.testing.assert_close(cur["rope_deltas"], golden["rope_deltas"], rtol=0, atol=0)
+    torch.testing.assert_close(
+        cur["position_ids"], golden["position_ids"], rtol=0, atol=0
+    )
+    torch.testing.assert_close(
+        cur["rope_deltas"], golden["rope_deltas"], rtol=0, atol=0
+    )
 
     torch.testing.assert_close(cur["hf_cos"], golden["hf_cos"], rtol=0, atol=0)
     torch.testing.assert_close(cur["hf_sin"], golden["hf_sin"], rtol=0, atol=0)
     torch.testing.assert_close(cur["ours_cos"], golden["ours_cos"], rtol=0, atol=0)
     torch.testing.assert_close(cur["ours_sin"], golden["ours_sin"], rtol=0, atol=0)
-

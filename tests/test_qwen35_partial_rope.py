@@ -44,4 +44,3 @@ def test_qwen35_partial_rope_matches_hf_embedding():
 
     torch.testing.assert_close(ours_cos, hf_cos, rtol=0, atol=0)
     torch.testing.assert_close(ours_sin, hf_sin, rtol=0, atol=0)
-
