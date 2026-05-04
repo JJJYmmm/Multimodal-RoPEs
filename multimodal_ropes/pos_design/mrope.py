@@ -94,24 +94,27 @@ def get_mrope_index(
                     llm_pos_ids_list[-1].max() + 1 if len(llm_pos_ids_list) > 0 else 0
                 )
                 llm_pos_ids_list.append(
-                    torch.arange(text_len).view(1, -1).expand(3, -1) + st_idx
+                    torch.arange(text_len, device=input_ids.device)
+                    .view(1, -1)
+                    .expand(3, -1)
+                    + st_idx
                 )
 
                 # default stride = 1, follow qwen2-vl
                 t_index = (
-                    torch.arange(llm_grid_t)
+                    torch.arange(llm_grid_t, device=input_ids.device)
                     .view(-1, 1)
                     .expand(-1, llm_grid_h * llm_grid_w)
                     .flatten()
                 ) * extra_config.temporal_stride
                 h_index = (
-                    torch.arange(llm_grid_h)
+                    torch.arange(llm_grid_h, device=input_ids.device)
                     .view(1, -1, 1)
                     .expand(llm_grid_t, -1, llm_grid_w)
                     .flatten()
                 )
                 w_index = (
-                    torch.arange(llm_grid_w)
+                    torch.arange(llm_grid_w, device=input_ids.device)
                     .view(1, 1, -1)
                     .expand(llm_grid_t, llm_grid_h, -1)
                     .flatten()
@@ -127,7 +130,10 @@ def get_mrope_index(
                 )
                 text_len = len(input_tokens) - st
                 llm_pos_ids_list.append(
-                    torch.arange(text_len).view(1, -1).expand(3, -1) + st_idx
+                    torch.arange(text_len, device=input_ids.device)
+                    .view(1, -1)
+                    .expand(3, -1)
+                    + st_idx
                 )
 
             llm_positions = torch.cat(llm_pos_ids_list, dim=1).reshape(3, -1)

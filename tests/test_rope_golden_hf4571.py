@@ -380,6 +380,97 @@ def test_new_variant_position_rules():
     )
 
 
+def test_omnirope_temporal_stride_advances_visual_block_extent():
+    cfg = Qwen3VLConfig()
+    stub = SimpleNamespace(config=cfg)
+    merge = cfg.vision_config.spatial_merge_size
+    image_grid_thw = torch.tensor([[3, 4, 4]], dtype=torch.long)
+    visual_len = 3 * (4 // merge) * (4 // merge)
+    input_ids = torch.tensor(
+        [[cfg.vision_start_token_id] + [cfg.image_token_id] * visual_len + [1234]],
+        dtype=torch.long,
+    )
+    attention_mask = torch.ones_like(input_ids)
+    mm_token_type_ids = torch.tensor([[0] + [1] * visual_len + [0]], dtype=torch.long)
+
+    rope_index, _ = get_multimodal_rope(
+        "omnirope",
+        dim=128,
+        base=5_000_000,
+        temporal_stride=2.0,
+    )
+    pos_ids, _ = rope_index(
+        stub,
+        input_ids=input_ids,
+        mm_token_type_ids=mm_token_type_ids,
+        image_grid_thw=image_grid_thw,
+        attention_mask=attention_mask,
+    )
+
+    torch.testing.assert_close(pos_ids[:, 0, -1], torch.tensor([6.0, 6.0, 6.0]))
+
+
+def test_new_variant_config_validation():
+    with pytest.raises(ValueError, match="not supported"):
+        get_multimodal_rope("unknown-rope", dim=128)
+
+    with pytest.raises(ValueError, match="mrope_section"):
+        get_multimodal_rope("mrope", dim=128, mrope_section=[16, 24])
+
+    with pytest.raises(ValueError, match="temporal_stride"):
+        get_multimodal_rope("videorope", dim=128, temporal_stride=0)
+
+    with pytest.raises(ValueError, match="num_key_value_heads"):
+        get_multimodal_rope(
+            "mhrope",
+            dim=128,
+            mrope_section=[3, 3, 3],
+            num_key_value_heads=8,
+        )
+
+    with pytest.raises(ValueError, match="temporal_stride_lst"):
+        get_multimodal_rope("hope", dim=128, temporal_stride_lst=[])
+
+    with pytest.raises(ValueError, match="method"):
+        get_multimodal_rope("circlerope", dim=128, method="spiral")
+
+    with pytest.raises(ValueError, match="visual_stride"):
+        get_multimodal_rope("v2pe", dim=128, visual_stride=0)
+
+    with pytest.raises(ValueError, match="reset visual layout"):
+        get_multimodal_rope("ilrope", dim=128, spatial_reset=False)
+
+    with pytest.raises(ValueError, match="position_scale"):
+        get_multimodal_rope("mmrope", dim=128, position_scale=(1.0, 2.0))
+
+    with pytest.raises(ValueError, match="position_scale values"):
+        get_multimodal_rope("mmrope", dim=128, position_scale=(1.0, -1.0, 1.0))
+
+
+def test_interleaved_frequency_allocations_do_not_mutate_inputs():
+    cfg = Qwen3VLTextConfig()
+    cfg.rope_scaling = {"rope_type": "default", "rope_theta": 5_000_000.0}
+    freqs = torch.stack(
+        [
+            torch.full((1, 1, 8), 10.0),
+            torch.full((1, 1, 8), 20.0),
+            torch.full((1, 1, 8), 30.0),
+        ]
+    )
+
+    for rope_name in ("mrope-interleave", "videorope"):
+        _, rope_cls = get_multimodal_rope(
+            rope_name,
+            dim=128,
+            base=5_000_000,
+            mrope_section=[2, 2, 2],
+        )
+        emb = rope_cls(cfg)
+        original = freqs.clone()
+        emb.apply_transformation(freqs, [2, 2, 2])
+        torch.testing.assert_close(freqs, original)
+
+
 def test_mmrope_frequency_pattern_matches_meta_component():
     _, rope_cls = get_multimodal_rope(
         "mmrope",
@@ -498,6 +589,19 @@ def test_grape_learned_modes_use_text_config_frequencies():
     torch.testing.assert_close(
         emb.learned_rotation.inv_freq,
         emb.inv_freq,
+    )
+
+    _, block_cls = get_multimodal_rope(
+        "grape",
+        dim=128,
+        base=10_000,
+        grape_mode="block_mixed",
+        block_size=16,
+    )
+    block_emb = block_cls(cfg)
+    torch.testing.assert_close(
+        block_emb.learned_rotation.inv_freq,
+        block_emb.inv_freq.reshape(8, 8),
     )
 
 

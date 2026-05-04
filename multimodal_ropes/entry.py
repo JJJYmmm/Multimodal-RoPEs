@@ -96,13 +96,15 @@ MAPPINGS_NAME_TO_FREQ_ALLOCATION = {
 
 
 def get_multimodal_rope_config(rope_name: str, **kwargs) -> VanillaRopeConfig:
-    assert rope_name in SUPPORT_MM_ROPES, f"RoPE type {rope_name} not supported."
+    if rope_name not in SUPPORT_MM_ROPES:
+        raise ValueError(f"RoPE type {rope_name} not supported.")
     rope_config_class = MAPPINGS_NAME_TO_CONFIG[rope_name]
     return rope_config_class(**kwargs)
 
 
 def get_multimodal_rope(rope_name: str, *args, **kwargs):
-    assert rope_name in SUPPORT_MM_ROPES, f"RoPE type {rope_name} not supported."
+    if rope_name not in SUPPORT_MM_ROPES:
+        raise ValueError(f"RoPE type {rope_name} not supported.")
 
     rope_config_class = MAPPINGS_NAME_TO_CONFIG[rope_name]
     config = rope_config_class(*args, **kwargs)

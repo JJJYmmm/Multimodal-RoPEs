@@ -52,7 +52,7 @@ def get_omnirope_index(
             input_tokens = input_ids.tolist()
             llm_pos_ids_list: list = []
             st = 0
-            pe_shift = 0
+            pe_shift = 0.0
             remain_images, remain_videos = image_nums, video_nums
             for _ in range(image_nums + video_nums):
                 if image_token_id in input_tokens and remain_images > 0:
@@ -81,7 +81,7 @@ def get_omnirope_index(
                         + pe_shift
                     )
                     llm_pos_ids_list.append(text_pos.view(1, -1).expand(3, -1))
-                    pe_shift = int(text_pos[-1].item()) + 1
+                    pe_shift = float(text_pos[-1].item()) + 1
 
                 llm_grid_t, llm_grid_h, llm_grid_w = (
                     t.item(),
@@ -110,7 +110,8 @@ def get_omnirope_index(
                     .flatten()
                 )
                 llm_pos_ids_list.append(torch.stack([t_index, h_index, w_index]))
-                pe_shift += max(llm_grid_t, llm_grid_h, llm_grid_w)
+                temporal_extent = (llm_grid_t - 1) * extra_config.temporal_stride + 1
+                pe_shift += max(temporal_extent, llm_grid_h, llm_grid_w)
                 st = ed + visual_len
 
             if st < len(input_tokens):
@@ -125,7 +126,7 @@ def get_omnirope_index(
                 device=position_ids.device, dtype=position_ids.dtype
             )
             mrope_position_deltas.append(
-                llm_positions[0].max() + 1 - len(total_input_ids[i])
+                llm_positions.max() + 1 - len(total_input_ids[i])
             )
         mrope_position_deltas = torch.tensor(
             mrope_position_deltas, device=input_ids.device

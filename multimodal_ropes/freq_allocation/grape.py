@@ -21,10 +21,45 @@ def _make_inv_freq(
             source_index = torch.linspace(0, inv_freq.numel() - 1, num_planes)
             inv_freq = inv_freq[source_index.round().long()]
     else:
+        if base is None:
+            raise ValueError("base is required when source_inv_freq is not provided.")
         exponents = torch.arange(num_planes, dtype=torch.float) / num_planes
         inv_freq = torch.pow(
             torch.tensor(base, dtype=torch.float), exponents
         ).reciprocal()
+    if log_freq_scale != 1.0:
+        inv_freq = torch.exp(inv_freq.log() / log_freq_scale)
+    return inv_freq
+
+
+def _make_block_inv_freq(
+    num_blocks: int,
+    planes_per_block: int,
+    base: float | None,
+    log_freq_scale: float,
+    source_inv_freq: torch.Tensor | None = None,
+):
+    if source_inv_freq is None:
+        inv_freq = _make_inv_freq(planes_per_block, base, log_freq_scale)
+        return inv_freq.view(1, -1).expand(num_blocks, -1).contiguous()
+
+    source_inv_freq = source_inv_freq.detach().float()
+    if source_inv_freq.numel() % num_blocks != 0:
+        inv_freq = _make_inv_freq(
+            num_blocks * planes_per_block,
+            base,
+            log_freq_scale,
+            source_inv_freq,
+        )
+        return inv_freq.reshape(num_blocks, planes_per_block)
+
+    source_blocks = source_inv_freq.reshape(num_blocks, -1)
+    if source_blocks.shape[1] == planes_per_block:
+        inv_freq = source_blocks
+    else:
+        source_index = torch.linspace(0, source_blocks.shape[1] - 1, planes_per_block)
+        inv_freq = source_blocks[:, source_index.round().long()]
+
     if log_freq_scale != 1.0:
         inv_freq = torch.exp(inv_freq.log() / log_freq_scale)
     return inv_freq
@@ -272,7 +307,13 @@ class BlockMixedGrapeRotation(nn.Module):
         self.axis_weight.requires_grad_(learnable)
         self.register_buffer(
             "inv_freq",
-            _make_inv_freq(planes_per_block, base, log_freq_scale, source_inv_freq),
+            _make_block_inv_freq(
+                self.num_blocks,
+                planes_per_block,
+                base,
+                log_freq_scale,
+                source_inv_freq,
+            ),
             persistent=False,
         )
         self.reset_parameters(rope_init)
@@ -306,8 +347,7 @@ class BlockMixedGrapeRotation(nn.Module):
             "blc,npc->blnp", positions.to(x.device, dtype=torch.float), axis_weight
         )
         angle = (
-            mixed_pos.unsqueeze(2)
-            * self.inv_freq.to(x.device)[None, None, None, None, :]
+            mixed_pos.unsqueeze(2) * self.inv_freq.to(x.device)[None, None, None, :, :]
         )
         cos = angle.cos()
         sin = angle.sin()
@@ -350,7 +390,7 @@ class GRAPEEmbedding(MRopeEmbedding):
                 learned_inv_freq,
             )
         elif self.grape_mode == "block_mixed":
-            block_size = min(extra_config.block_size, self.rotary_dim)
+            block_size = extra_config.block_size
             planes_per_block = extra_config.planes_per_block or block_size // 2
             self.learned_rotation = BlockMixedGrapeRotation(
                 self.rotary_dim,

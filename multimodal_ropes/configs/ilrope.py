@@ -15,6 +15,11 @@ class ILRopeConfig(MRopeInterleaveConfig):
         spatial_reset: bool = True,
         **kwargs,
     ):
+        if not spatial_reset:
+            raise ValueError(
+                "ILRoPE uses a reset visual layout in this package. Use "
+                "'mrope-interleave' for the non-reset interleaved layout."
+            )
         if mrope_section is None:
             mrope_section = [24, 20, 20]
         super().__init__(

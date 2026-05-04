@@ -16,7 +16,7 @@ class MRopeInterleaveEmbedding(MRopeEmbedding):
         returns:
             x_t: (bs, seq_len, head_dim // 2)
         """
-        freqs_t = freqs[0]  # just overwrite the first dimension T
+        freqs_t = freqs[0].clone()
         for dim, offset in enumerate((1, 2), start=1):  # H, W
             length = mrope_section[dim] * 3
             idx = slice(offset, length, 3)

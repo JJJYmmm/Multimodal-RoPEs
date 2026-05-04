@@ -15,6 +15,10 @@ class MMRopeConfig(MRopeConfig):
         position_scale: tuple[float, float, float] = (1.0, 1.0, 1.0),
         **kwargs,
     ):
+        if len(position_scale) != 3:
+            raise ValueError("position_scale must contain exactly three values.")
+        if any(scale <= 0 for scale in position_scale):
+            raise ValueError("position_scale values must be positive.")
         if mrope_section is None:
             mrope_section = [16, 24, 24]
         super().__init__(

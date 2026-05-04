@@ -105,8 +105,8 @@ get_multimodal_rope("v2pe", dim=128, base=5_000_000, visual_stride=16.0)
 
 | Parameter | Default | Meaning |
 | --- | --- | --- |
-| `mrope_section` | `[16, 24, 24]` | Rotary-pair allocation for `(t, h, w)` axes in chunked MRoPE frequency layout. Sum should match `head_dim // 2` for full RoPE. |
-| `temporal_stride` | `2.0` | Multiplier applied to visual temporal indices. |
+| `mrope_section` | `[16, 24, 24]` | Positive rotary-pair allocation for `(t, h, w)` axes in chunked MRoPE frequency layout. Sum should match `head_dim // 2` for full RoPE. |
+| `temporal_stride` | `2.0` | Positive multiplier applied to visual temporal indices. |
 
 Use when reproducing Qwen2-VL/Qwen2.5-VL-style MRoPE.
 
@@ -135,8 +135,8 @@ get_multimodal_rope("mrope", dim=128, base=5_000_000, mrope_section=[16, 24, 24]
 
 | Parameter | Default | Meaning |
 | --- | --- | --- |
-| `mrope_section` | `[24, 20, 20]` | Per-axis rotary-pair budget for interleaved frequency allocation. |
-| `temporal_stride` | `1.0` | Multiplier applied to visual temporal indices. |
+| `mrope_section` | `[24, 20, 20]` | Positive per-axis rotary-pair budget for interleaved frequency allocation. |
+| `temporal_stride` | `1.0` | Positive multiplier applied to visual temporal indices. |
 | `spatial_reset` | `False` | If `True`, reset visual `h/w` positions to local image/video coordinates and keep the visual end token after the local visual range. |
 
 Use `spatial_reset=False` for Qwen3-VL/Qwen3.5-style compatibility; use
@@ -167,8 +167,8 @@ get_multimodal_rope("mrope-interleave", dim=128, base=5_000_000, mrope_section=[
 
 | Parameter | Default | Meaning |
 | --- | --- | --- |
-| `mrope_section` | `[2, 3, 3]` | Number of KV heads assigned to `(t, h, w)`. Unlike MRoPE, this is head allocation, not feature-pair allocation. |
-| `temporal_stride` | `1.0` | Multiplier applied to visual temporal indices. |
+| `mrope_section` | `[2, 3, 3]` | Number of KV heads assigned to `(t, h, w)`. Unlike MRoPE, this is head allocation, not feature-pair allocation. The sum must not exceed `num_key_value_heads`. |
+| `temporal_stride` | `1.0` | Positive multiplier applied to visual temporal indices. |
 | `num_key_value_heads` | `8` | Total KV heads. If `sum(mrope_section) < num_key_value_heads`, remaining heads receive NoPE-style zero rotations. |
 | `spatial_reset` | inherited default `False` | Passed through the MRoPE-I position design. |
 
@@ -197,8 +197,8 @@ get_multimodal_rope("mhrope", dim=128, base=5_000_000, mrope_section=[2, 3, 3], 
 
 | Parameter | Default | Meaning |
 | --- | --- | --- |
-| `mrope_section` | `[16, 24, 24]` | Rotary-pair allocation used by the VideoRoPE frequency layout. |
-| `temporal_stride` | `2.0` | Multiplier applied to visual temporal positions before the diagonal layout. |
+| `mrope_section` | `[16, 24, 24]` | Positive rotary-pair allocation used by the VideoRoPE frequency layout. |
+| `temporal_stride` | `2.0` | Positive multiplier applied to visual temporal positions before the diagonal layout. |
 
 VideoRoPE uses a diagonal visual position design and a frequency layout that
 places spatial dimensions in alternating early channels while leaving temporal
@@ -226,9 +226,9 @@ get_multimodal_rope("videorope", dim=128, base=5_000_000, mrope_section=[16, 24,
 
 | Parameter | Default | Meaning |
 | --- | --- | --- |
-| `mrope_section` | `[16, 24, 24]` | Same frequency allocation budget as VideoRoPE. |
-| `temporal_stride` | `2.0` | Base temporal stride used by the HoPE position design. |
-| `temporal_stride_lst` | `[0.5, 0.75, 1.0, 1.25, 1.5]` | Candidate temporal scaling values used by HoPE's positional scaling design. |
+| `mrope_section` | `[16, 24, 24]` | Same positive frequency allocation budget as VideoRoPE. |
+| `temporal_stride` | `2.0` | Positive base temporal stride used by the HoPE position design. |
+| `temporal_stride_lst` | `[0.5, 0.75, 1.0, 1.25, 1.5]` | Non-empty positive candidate temporal scaling values used by HoPE's positional scaling design. |
 
 HoPE follows VideoRoPE frequency allocation but applies NoPE to the temporal
 dimension in the embedding module.
@@ -259,10 +259,10 @@ get_multimodal_rope("hope", dim=128, base=5_000_000, mrope_section=[16, 24, 24],
 | `temporal_stride` | `1.0` | Temporal spacing for stacked video rings. |
 | `move_to_origin` | `False` | Shift circle coordinates toward the origin. |
 | `move_to_positive` | `False` | Shift circle coordinates into a positive range. |
-| `dff_rate` | `False` | Enable the distance/frequency factor used by the local CircleRoPE implementation. |
-| `method` | `"circle"` | Circle position construction mode. |
+| `dff_rate` | `False` | Distance/frequency interpolation weight in `[0, 1]`; `False` disables it and `True` is equivalent to `1.0`. |
+| `method` | `"circle"` | Circle position construction mode. Options: `"circle"`, `"no_circle"`. |
 | `radius` | `-1` | Circle radius; negative means use the implementation default. |
-| `alpha` | `-1` | Circle layout coefficient; negative means use the implementation default. |
+| `alpha` | `-1` | Circle layout coefficient in `[0, 1]`; `-1` means use the implementation default. |
 
 The repo extends image-only CircleRoPE to video by stacking circular rings along
 the temporal dimension.
@@ -292,7 +292,7 @@ get_multimodal_rope("circlerope", dim=128, base=5_000_000, mrope_section=[16, 24
 | --- | --- | --- |
 | `mrope_section` | `[24, 20, 20]` | Per-axis rotary-pair budget for interleaved 3D frequency allocation. |
 | `temporal_stride` | `1.0` | Multiplier applied to visual temporal positions. |
-| `spatial_reset` | `True` | Kept for API clarity; ILRoPE uses an Omni/Mogao-style reset layout in this package. |
+| `spatial_reset` | `True` | Fixed to `True`; ILRoPE uses an Omni/Mogao-style reset layout in this package. Use `mrope-interleave` for the non-reset interleaved layout. |
 
 ILRoPE uses the reset visual layout shared with OmniRoPE, then applies
 MRoPE-Interleave frequency allocation.
@@ -302,7 +302,8 @@ Position ID design:
 - Text tokens use identical positions on all three axes.
 - Each visual block uses `(shift, row, col)`: temporal/sequence axis is fixed to
   the current block shift, while spatial axes reset to local row/column indices.
-- After each visual block, `shift` advances by the maximum visual grid extent.
+- After each visual block, `shift` advances by the maximum visual grid extent,
+  including the temporal extent after `temporal_stride`.
 - This gives local spatial reset behavior and intentionally differs from
   text-only RoPE compatibility on spatial rows.
 
@@ -332,8 +333,9 @@ Position ID design:
 - Text tokens use identical positions on all three axes.
 - Visual tokens use `(shift, row, col)`, where `shift` separates visual blocks and
   `row/col` reset locally for each block.
-- `shift += max(t, h, w)` after a visual block, following the OmniGen2-style
-  implementation pattern.
+- `shift += max(t_extent, h, w)` after a visual block, where
+  `t_extent=(t - 1) * temporal_stride + 1`. This keeps later text/visual blocks
+  outside the temporally stretched visual range.
 
 Frequency allocation:
 
@@ -351,7 +353,7 @@ get_multimodal_rope("omnirope", dim=128, base=5_000_000, mrope_section=[16, 24, 
 | --- | --- | --- |
 | `mrope_section` | `[16, 24, 24]` | Kept for API symmetry with 3D RoPE variants. The MM-RoPE embedding uses the fixed distributed meta-component pattern. |
 | `temporal_stride` | `1.0` | Multiplier applied to visual temporal positions before scaling. |
-| `position_scale` | `(1.0, 1.0, 1.0)` | Per-axis multiplier for `(t, h, w)` positions. Use values like `(4.0, 8.0, 8.0)` to scale latent coordinates toward RGB-space coordinates as in Lumos-1. |
+| `position_scale` | `(1.0, 1.0, 1.0)` | Positive per-axis multiplier for `(t, h, w)` positions. Use values like `(4.0, 8.0, 8.0)` to scale latent coordinates toward RGB-space coordinates as in Lumos-1. |
 
 MM-RoPE frequency allocation repeats the 16-channel meta component
 `T,T,H,W,H,W,H,W` across rotary pairs.
@@ -385,8 +387,8 @@ get_multimodal_rope("mmrope", dim=128, base=5_000_000, temporal_stride=1.0, posi
 | `frequency_allocation` | `"chunked"` | Fixed canonical-plane assignment used by `grape_mode="canonical"`. Options: `"chunked"`, `"interleaved"`. |
 | `grape_mode` | `"canonical"` | GRAPE implementation mode. Options: `"canonical"`, `"axis"`, `"mixed"`, `"block_mixed"`. |
 | `num_planes` | `None` | Number of learned rank-2 planes for `axis` and `mixed`. `None` means `rotary_dim // 2`, matching the number of ordinary RoPE pairs. |
-| `block_size` | `16` | Local block width for `block_mixed`; `rotary_dim` must be divisible by it. |
-| `planes_per_block` | `None` | Learned rank-2 planes per block for `block_mixed`. `None` means `block_size // 2`. |
+| `block_size` | `16` | Local block width for `block_mixed`; `rotary_dim` must be divisible by it. Invalid block sizes raise instead of being silently clipped. |
+| `planes_per_block` | `None` | Learned rank-2 planes per block for `block_mixed`. `None` means `block_size // 2`; values must not exceed `block_size // 2`. |
 | `rope_init` | `True` | Initialize learned planes as ordinary even/odd RoPE pairs, and initialize mixed-axis weights in a cyclic `t,h,w` pattern. |
 | `learnable` | `True` | Whether learned plane parameters and mixed-axis weights require gradients. |
 
@@ -436,6 +438,9 @@ Frequency allocation:
 - Learned `block_mixed` is the lower-cost engineering variant: it splits
   `rotary_dim` into local blocks, learns planes inside each block, and also
   learns a mixed `(t,h,w)` phase direction per block plane.
+- In `block_mixed`, the frequency buffer is block-shaped
+  `[num_blocks, planes_per_block]`, preserving each local block's original RoPE
+  frequency band.
 - `log_freq_scale` warps the standardized HF text-config frequency spectrum for
   both canonical and learned modes. Learned modes intentionally reuse
   `self.inv_freq`, so `rope_theta` and `partial_rotary_factor` stay aligned with

@@ -21,6 +21,8 @@ class MHRopeConfig(MRopeInterleaveConfig):
         """
         if mrope_section is None:
             mrope_section = [2, 3, 3]
+        if sum(mrope_section) > num_key_value_heads:
+            raise ValueError("sum(mrope_section) cannot exceed num_key_value_heads.")
         super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)
         self.name = "mhrope"
         self.num_key_value_heads = num_key_value_heads

@@ -96,23 +96,26 @@ def get_circlerope_index(
                     llm_pos_ids_list[-1].max() + 1 if len(llm_pos_ids_list) > 0 else 0
                 )
                 llm_pos_ids_list.append(
-                    torch.arange(text_len).view(1, -1).expand(3, -1) + st_idx
+                    torch.arange(text_len, device=input_ids.device)
+                    .view(1, -1)
+                    .expand(3, -1)
+                    + st_idx
                 )
 
                 # t_index is always 0 because llm_grid_t is always 1 (we use timestamps to encode the temporal information for videos)
                 t_index = (
-                    torch.arange(llm_grid_t)
+                    torch.arange(llm_grid_t, device=input_ids.device)
                     .view(-1, 1)
                     .expand(-1, llm_grid_h * llm_grid_w)
                     .view(-1, llm_grid_h, llm_grid_w)
                 ) * extra_config.temporal_stride
                 h_index = (
-                    torch.arange(llm_grid_h)
+                    torch.arange(llm_grid_h, device=input_ids.device)
                     .view(1, -1, 1)
                     .expand(llm_grid_t, -1, llm_grid_w)
                 )
                 w_index = (
-                    torch.arange(llm_grid_w)
+                    torch.arange(llm_grid_w, device=input_ids.device)
                     .view(1, 1, -1)
                     .expand(llm_grid_t, llm_grid_h, -1)
                 )
@@ -125,7 +128,7 @@ def get_circlerope_index(
                 # by increasing the time dimension linearly
                 llm_pos_ids = (
                     llm_pos_ids.repeat(1, llm_grid_t)
-                    + torch.arange(llm_grid_t)
+                    + torch.arange(llm_grid_t, device=input_ids.device)
                     .view(1, -1)
                     .repeat_interleave(llm_grid_h * llm_grid_w, dim=1)
                     * extra_config.temporal_stride
@@ -140,7 +143,10 @@ def get_circlerope_index(
                 )
                 text_len = len(input_tokens) - st
                 llm_pos_ids_list.append(
-                    torch.arange(text_len).view(1, -1).expand(3, -1) + st_idx
+                    torch.arange(text_len, device=input_ids.device)
+                    .view(1, -1)
+                    .expand(3, -1)
+                    + st_idx
                 )
 
             llm_positions = torch.cat(llm_pos_ids_list, dim=1).reshape(3, -1)
@@ -272,7 +278,7 @@ def move_to_positive_axis(coords, offset=0):
     # Find the absolute minimum value across all coordinates
     min_vals = torch.abs(torch.min(coords))
     # Create a tensor of these minimum values for shifting
-    centers = torch.tensor([min_vals, min_vals, min_vals]).view(-1, 1, 1, 1)
+    centers = min_vals.expand(3).view(-1, 1, 1, 1)
 
     # Shift coordinates to be positive and add an optional offset
     new_coords = coords + centers + offset

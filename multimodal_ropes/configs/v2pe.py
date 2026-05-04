@@ -17,6 +17,8 @@ class V2PEConfig(VanillaRopeConfig):
         visual_stride: float = 16.0,
         **kwargs,
     ):
+        if visual_stride <= 0:
+            raise ValueError("visual_stride must be positive.")
         super().__init__(dim, base, **kwargs)
         self.name = "v2pe"
         self.visual_stride = visual_stride

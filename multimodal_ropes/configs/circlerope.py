@@ -22,6 +22,14 @@ class CircleRopeConfig(MRopeConfig):
     ):
         if mrope_section is None:
             mrope_section = [16, 24, 24]
+        if method not in {"circle", "no_circle"}:
+            raise ValueError("method must be one of: 'circle', 'no_circle'.")
+        if alpha != -1 and not 0 <= alpha <= 1:
+            raise ValueError("alpha must be in [0, 1], or -1 for the default.")
+        if not isinstance(dff_rate, bool | int | float):
+            raise TypeError("dff_rate must be a bool or numeric interpolation weight.")
+        if not 0 <= float(dff_rate) <= 1:
+            raise ValueError("dff_rate must be in [0, 1].")
         super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)
         self.name = "circlerope"
         self.move_to_origin = move_to_origin

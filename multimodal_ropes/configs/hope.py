@@ -19,6 +19,10 @@ class HopeConfig(MRopeConfig):
             mrope_section = [16, 24, 24]
         if temporal_stride_lst is None:
             temporal_stride_lst = [0.5, 0.75, 1.0, 1.25, 1.5]
+        if len(temporal_stride_lst) == 0:
+            raise ValueError("temporal_stride_lst must not be empty.")
+        if any(stride <= 0 for stride in temporal_stride_lst):
+            raise ValueError("temporal_stride_lst values must be positive.")
         super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)
         self.name = "hope"
         self.temporal_stride_lst = temporal_stride_lst
