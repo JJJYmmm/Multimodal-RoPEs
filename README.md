@@ -26,10 +26,10 @@ To enhance usability and consistency, we are refactoring various multimodal RoPE
 - [x] [VideoRoPE](https://arxiv.org/pdf/2502.05173): Optimizes MRoPE’s frequency allocation by assigning the temporal dimension to low-frequency bands and adopting a diagonal positional design. Different from the official implementation, we vectorize the computation for faster execution.
 - [x] [HoPE](https://arxiv.org/abs/2505.20444): Built on VideoRoPE, applies positional scaling in the design and uses NoPE (no positional encoding) on the temporal dimension during frequency allocation. Different from the official implementation, we reset the temporal positions and vectorize the computation for faster execution.
 - [x] [CircleRoPE](https://arxiv.org/abs/2505.16416): A novel positional design that maps image tokens onto a circular trajectory orthogonal to text token indices, effectively mitigating cross-modal positional bias during generation. While the original CircleRoPE was designed for static images, we extend it to support video inputs by stacking circular rings along the temporal dimension, see [here](https://github.com/JJJYmmm/Multimodal-RoPEs/blob/64f8a141326c0ec079f8f05da42483a600028662/multimodal_ropes/pos_design/circlerope.py#L122-L130). Note that this repo doesn't support AGE mode for simplicity.
-- [ ] [V2PE](https://arxiv.org/abs/2412.09616)
-- [ ] [ILRoPE](https://arxiv.org/abs/2505.05472v1) / [OmniRoPE](https://arxiv.org/abs/2506.18871)
-- [ ] [MMRoPE](https://arxiv.org/abs/2507.08801)
-- [ ] [GRAPE](https://openreview.net/forum?id=itoNJ3gJl2)
+- [x] [V2PE](https://arxiv.org/abs/2412.09616): Treats multimodal input as a flattened 1D sequence while assigning visual tokens a configurable smaller stride, following the official `rope_pos_id_stride / num_image_token` rule.
+- [x] [ILRoPE](https://arxiv.org/abs/2505.05472v1) / [OmniRoPE](https://arxiv.org/abs/2506.18871): Supports visual spatial reset layouts with text spatial axes reset to zero; ILRoPE uses interleaved 3D frequency allocation, while OmniRoPE follows the OmniGen2-style shifted visual layout with chunked 3D allocation.
+- [x] [MMRoPE](https://arxiv.org/abs/2507.08801): Implements distributed 2:3:3 meta-component frequency allocation (`T,T,H,W,H,W,H,W`) and optional 3D position scaling.
+- [x] [GRAPE](https://openreview.net/forum?id=itoNJ3gJl2): Provides commuting 3D multiplicative GRAPE designs for multimodal coordinates, plus learned-plane multimodal variants (`axis`, `mixed`, `block_mixed`) that apply trainable rank-2 rotations directly to Q/K.
 - [ ] More variants... Feel free to open an issue or pull request, and I will add them here. 🤗
 
 ## Usage
@@ -79,6 +79,9 @@ python test.py --ckpt-dir ../checkpoints/Qwen3.5-0.8B
 
 The package provides a simple interface to plug in different multimodal RoPE variants. Below is an example of how to patch `Qwen3-VL` with your preferred RoPE configuration:
 > Note that adapting to the new positional encodings typically requires additional training or fine-tuning to ensure optimal performance.
+
+For a compact reference of all variant-specific knobs, see
+[`docs/rope_hyperparameters.md`](docs/rope_hyperparameters.md).
 
 ```python
 from multimodal_ropes.entry import get_multimodal_rope

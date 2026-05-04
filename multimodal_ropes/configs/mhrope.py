@@ -10,7 +10,7 @@ class MHRopeConfig(MRopeInterleaveConfig):
         self,
         dim: int,
         base: int = 10000,
-        mrope_section: list[int] = [2, 3, 3],
+        mrope_section: list[int] | None = None,
         temporal_stride: float = 1.0,
         num_key_value_heads: int = 8,
         **kwargs,
@@ -19,6 +19,8 @@ class MHRopeConfig(MRopeInterleaveConfig):
         Configuration class for MHRoPE.
         mrope_section means the number of heads for each dimension, like [2, 3, 3] for T, H, W.
         """
+        if mrope_section is None:
+            mrope_section = [2, 3, 3]
         super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)
         self.name = "mhrope"
         self.num_key_value_heads = num_key_value_heads

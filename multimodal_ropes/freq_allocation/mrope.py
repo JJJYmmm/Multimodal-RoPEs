@@ -23,6 +23,7 @@ class MRopeEmbedding(RopeEmbedding):
             self.inv_freq[None, None, :, None]
             .float()
             .expand(3, position_ids.shape[1], -1, 1)
+            .to(x.device)
         )
         position_ids_expanded = position_ids[
             :, :, None, :

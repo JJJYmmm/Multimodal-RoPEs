@@ -18,12 +18,14 @@ class HopeEmbedding(VideoRopeEmbedding):
             position_ids = position_ids[None, ...].expand(3, position_ids.shape[0], -1)
 
         # HoPE: set t pos to 0
+        position_ids = position_ids.clone()
         position_ids[0].masked_fill_(position_ids[0] > 0, 0)
 
         inv_freq_expanded = (
             self.inv_freq[None, None, :, None]
             .float()
             .expand(3, position_ids.shape[1], -1, 1)
+            .to(x.device)
         )
         position_ids_expanded = position_ids[
             :, :, None, :

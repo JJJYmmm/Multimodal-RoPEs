@@ -10,10 +10,12 @@ class MRopeConfig(VanillaRopeConfig):
         self,
         dim: int,
         base: int = 10000,
-        mrope_section: list[int] = [16, 24, 24],
+        mrope_section: list[int] | None = None,
         temporal_stride: float = 2.0,
         **kwargs,
     ):
+        if mrope_section is None:
+            mrope_section = [16, 24, 24]
         super().__init__(dim, base, **kwargs)
         self.name = "mrope"
         self.mrope_section = mrope_section

@@ -1,5 +1,3 @@
-import torch
-
 from ..configs.videorope import VideoRopeConfig
 from .mrope import MRopeEmbedding
 

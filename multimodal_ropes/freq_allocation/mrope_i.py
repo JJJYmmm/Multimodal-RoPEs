@@ -1,5 +1,3 @@
-import torch
-
 from ..configs.mrope_i import MRopeInterleaveConfig
 from .mrope import MRopeEmbedding
 

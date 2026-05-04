@@ -10,7 +10,7 @@ class CircleRopeConfig(MRopeConfig):
         self,
         dim: int,
         base: int = 10000,
-        mrope_section: list[int] = [16, 24, 24],
+        mrope_section: list[int] | None = None,
         temporal_stride: float = 1.0,
         move_to_origin: bool = False,
         move_to_positive: bool = False,
@@ -20,6 +20,8 @@ class CircleRopeConfig(MRopeConfig):
         alpha: float = -1,
         **kwargs,
     ):
+        if mrope_section is None:
+            mrope_section = [16, 24, 24]
         super().__init__(dim, base, mrope_section, temporal_stride, **kwargs)
         self.name = "circlerope"
         self.move_to_origin = move_to_origin
